@@ -5,22 +5,22 @@ lio:
     if_filter: true
     save_map_dir: "map"
     map_name: "map.pcd"
-    ds_size: 0.1
+    ds_size: 0.25
     save_interval: 500    # -1 stores all frames directly (may cause excessive memory usage).
                           # Values > 0 save one frame every N frames, then merge at the end.
 
   # ROS Topic input
   ros:
-    lidar_topic: "/livox/lidar"
-    imu_topic: "/livox/imu"
+    # lidar_topic: "/mid360/livox/lidar"
+    # imu_topic: "/mid360/livox/imu"
 
     # for simulation
-    # lidar_topic: "/livox/lidar"
-    # imu_topic: "/mavros/imu/data"
+    lidar_topic: "/livox/points"
+    imu_topic: "/livox/imu"
 
   # Sensor Configuration
   sensor:
-    lidar_type: 1
+    lidar_type: 10
     blind: 2.0
     maxrange: 60.0
     filter_rate: 3.0
@@ -88,14 +88,13 @@ dyn_obj:
   en: true
 
   dataset: 4
-  buffer_delay: 0.1  # 点进入历史深度图前的延迟，单位秒。
-  buffer_size: 100000   # 历史点环形缓冲区容量。过小会丢历史点；过大会增加内存。
-  points_num_perframe: 20000  # 为每帧预分配的内部点结构数量。
-  depth_map_dur: 0.4    # 相邻深度图的时间跨度，单位秒
-  max_depth_map_num: 5    # 最多保存 5 张深度图
-  max_pixel_points: 20    # 每个球面像素最多保存 20 个历史点
-  frame_dur: 0.1            # 点云帧周期 super_lio runs the mid360 at 10 Hz
-  # 雷达有效区域
+  buffer_delay: 0.1
+  buffer_size: 100000
+  points_num_perframe: 20000
+  depth_map_dur: 0.4
+  max_depth_map_num: 5
+  max_pixel_points: 20
+  frame_dur: 0.1            # super_lio runs the mid360 at 10 Hz
   self_x_f: 0
   self_x_b: 0
   self_y_l: 0
@@ -107,15 +106,14 @@ dyn_obj:
   fov_right: -180.0
   fov_cut: -20.0
 
-  # Case 1：新出现/侵入历史空间的点
-  depth_thr1: 0.5 # Case 1 基础深度差
-  enter_min_thr1: 0.5 # 当前点相对历史最小深度向前突出的容差
-  enter_max_thr1: 0.5 # 当前点相对历史最大深度或深度层间隙的容差
-  map_cons_depth_thr1: 0.5  # 深度一致容差，米
-  map_cons_hor_thr1: 0.05 # 最小水平角窗口，弧度
-  map_cons_ver_thr1: 0.05 # 最小垂直角窗口，弧度
-  map_cons_hor_dis1: 0.3  # 希望覆盖的横向实际距离，米。
-  map_cons_ver_dis1: 0.6  # 希望覆盖的纵向实际距离，米。
+  depth_thr1: 0.5
+  enter_min_thr1: 0.5
+  enter_max_thr1: 0.5
+  map_cons_depth_thr1: 0.5
+  map_cons_hor_thr1: 0.05
+  map_cons_ver_thr1: 0.05
+  map_cons_hor_dis1: 0.3
+  map_cons_ver_dis1: 0.6
   depth_cons_depth_thr1: 0.5
   depth_cons_depth_max_thr1: 1.0
   depth_cons_hor_thr1: 0.05
@@ -123,27 +121,25 @@ dyn_obj:
   enlarge_z_thr1: -2.5
   enlarge_angle: 2.0
   enlarge_depth: 3.0
-  occluded_map_thr1: 3  # 只有至少 occluded_map_thr1 张历史深度图支持这种变化，才最终判为动态点，因此不会仅凭单帧深度跳变下结论
+  occluded_map_thr1: 3
   case1_interp_en: true
 
-  # Case 2：当前点位于历史点之后
-  v_min_thr2: 0.5 # 最小径向运动速度门槛，约为 m/s
-  acc_thr2: 7.0   # 跨历史图追踪时允许的径向速度变化率
+  v_min_thr2: 0.5
+  acc_thr2: 7.0
   map_cons_depth_thr2: 0.3
   map_cons_hor_thr2: 0.02
   map_cons_ver_thr2: 0.06
-  occ_depth_thr2: 0.3 # 前后深度至少相差多少米
-  occ_hor_thr2: 0.02  # 两点的水平角度允许差，弧度
-  occ_ver_thr2: 0.06  # 两点的垂直角度允许差，弧度
+  occ_depth_thr2: 0.3
+  occ_hor_thr2: 0.02
+  occ_ver_thr2: 0.06
   depth_cons_depth_thr2: 0.1
   depth_cons_depth_max_thr2: 0.5
   depth_cons_hor_thr2: 0.03
   depth_cons_ver_thr2: 0.06
-  occluded_times_thr2: 3  # 至少需要连续追踪 3 次才确认为动态点
+  occluded_times_thr2: 3
   k_depth2: 0.005
-  case2_interp_en: false  # 不使用深度插值，只使用真实历史点建立遮挡链，判定更保守
+  case2_interp_en: false
 
-  # Case 3：当前点位于历史点之前
   v_min_thr3: 0.5
   acc_thr3: 15.0
   map_cons_depth_thr3: 0.1
@@ -156,7 +152,7 @@ dyn_obj:
   depth_cons_depth_max_thr3: 1.0
   depth_cons_hor_thr3: 0.03
   depth_cons_ver_thr3: 0.03
-  occluding_times_thr3: 3
+  occluded_times_thr3: 3
   case3_interp_en: false
 
   interp_hor_thr: 0.03
