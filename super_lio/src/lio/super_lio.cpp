@@ -599,7 +599,15 @@ void SuperLIO::UpdateMap() {
 
 void SuperLIO::Output(){
   auto state = kf_->GetNavState();
-  data_wrapper_->pub_odom(state);  
+  data_wrapper_->pub_odom(state);
+
+  CloudPtr cloud_undistorted_lidar(new PointCloudType());
+  pcl::transformPointCloud(*scan_undistort_full_,
+                           *cloud_undistorted_lidar,
+                           g_lidar_imu.inverse().matrix().cast<float>());
+  data_wrapper_->pub_cloud_undistorted(scan_undistort_full_,
+                                       cloud_undistorted_lidar,
+                                       state.timestamp);
 
   Eigen::Matrix4f transformation = Eigen::Matrix4f::Identity();
   transformation.block<3, 3>(0, 0) = state.R.R_.cast<float>();

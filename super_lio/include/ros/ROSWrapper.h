@@ -78,6 +78,9 @@ public:
   }
 
   void pub_odom(const NavState&);
+  void pub_cloud_undistorted(const BASIC::CloudPtr& cloud_imu,
+                             const BASIC::CloudPtr& cloud_lidar,
+                             double time);
   void pub_cloud_world(const BASIC::CloudPtr& pc, double time);
   void pub_mdet_result(const BASIC::CloudPtr& dyn_cloud,
                        const BASIC::CloudPtr& steady_cloud,

@@ -105,7 +105,7 @@ namespace LI2Sup
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time);
     LOG(INFO) << GREEN << " ---> [SuperLIO]: Map init success. Time: " << duration.count() << " ms." << RESET;
 
-    state_fn_ = &SuperLIOReLoc::stateWaitKFInit;
+    state_fn_ = &SuperLIOReLoc::stateWaitKFInit; // 没有被重写
   }
 
   bool SuperLIOReLoc::map_init()
@@ -145,6 +145,12 @@ namespace LI2Sup
     return true;
   }
 
+  /**
+   * @brief
+   * 虚函数
+   *
+   * @return
+   */
   bool SuperLIOReLoc::kf_init()
   {
     const int need_init_frames = 10;
@@ -239,7 +245,11 @@ namespace LI2Sup
     icp.setInputSource(tmp_src);
 
     pcl::PointCloud<pcl::PointXYZI>::Ptr unused_result(new pcl::PointCloud<pcl::PointXYZI>());
+    LOG(INFO) << " ---> NDT align start.";
     ndt.align(*unused_result, init_guess_T.matrix().cast<float>());
+    LOG(INFO) << " ---> NDT align done. Converged: " << ndt.hasConverged()
+              << ", FitnessScore: " << ndt.getFitnessScore();
+    // LOG(INFO) << "ndt.getFinalTransformation()" << ndt.getFinalTransformation();
     icp.align(*unused_result, ndt.getFinalTransformation());
 
     if (icp.hasConverged() == false || icp.getFitnessScore() > 1.5)
@@ -297,12 +307,12 @@ namespace LI2Sup
     if (!g_update_map)
       return;
 
-    static int __update_delay = 100;
+    static int __update_delay = 300;
     if (__update_delay > 0)
     {
       __update_delay--;
       std::cout << "\rUpdate map Delay: "
-                << 100 - __update_delay
+                << 300 - __update_delay
                 << " %" << std::flush;
       return;
     }

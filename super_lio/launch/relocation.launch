@@ -2,7 +2,7 @@
 
   <arg name="rviz" default="true" />
 
-  <rosparam file="$(find super_lio)/config/relocation.yaml" command="load"/>
+  <rosparam file="$(find super_lio)/config/relocation_mulran.yaml" command="load"/>
 
   <!-- Launch Nodes -->
   <node pkg="super_lio" type="relocation_node" name="relocation_node" output="screen"/>

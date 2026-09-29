@@ -700,6 +700,27 @@ namespace LI2Sup
     pub_cloud_world_.publish(cloud);
   }
 
+  void ROSWrapper::pub_cloud_undistorted(const CloudPtr &cloud_imu,
+                                         const CloudPtr &cloud_lidar,
+                                         double time)
+  {
+    static ros::Publisher pub_cloud_imu =
+        nh_.advertise<sensor_msgs::PointCloud2>("/lio/cloud_undistorted_imu", 10);
+    static ros::Publisher pub_cloud_lidar =
+        nh_.advertise<sensor_msgs::PointCloud2>("/lio/cloud_undistorted_lidar", 10);
+
+    sensor_msgs::PointCloud2 msg;
+    pcl::toROSMsg(*cloud_imu, msg);
+    msg.header.frame_id = "imu";
+    msg.header.stamp = ros::Time().fromSec(time);
+    pub_cloud_imu.publish(msg);
+
+    pcl::toROSMsg(*cloud_lidar, msg);
+    msg.header.frame_id = "lidar";
+    msg.header.stamp = ros::Time().fromSec(time);
+    pub_cloud_lidar.publish(msg);
+  }
+
   /// M-detector output: moving points vs. the static points used for mapping.
   void ROSWrapper::pub_mdet_result(const CloudPtr &dyn_cloud,
                                    const CloudPtr &steady_cloud,

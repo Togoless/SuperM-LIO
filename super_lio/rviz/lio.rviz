@@ -21,7 +21,6 @@ Panels:
         - /Grid1/Offset1/X1
         - /Grid1/Offset1/Y1
         - /Grid1/Offset1/Z1
-        - /Axes1
         - /Axes1/Reference Frame1
         - /Axes1/Length1
         - /Axes1/Radius1
@@ -182,7 +181,7 @@ Panels:
   - Class: rviz/Time
     Name: Time
     SyncMode: 0
-    SyncSource: current
+    SyncSource: map
 Preferences:
   PromptSaveOnExit: true
 Toolbars:
@@ -211,7 +210,7 @@ Visualization Manager:
     - Alpha: 1
       Class: rviz/Axes
       Enabled: true
-      Length: 1000
+      Length: 10
       Name: Axes
       Radius: 0.10000000149011612
       Reference Frame: world
@@ -476,7 +475,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 170.00064086914062
+      Distance: 39.889808654785156
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -492,9 +491,9 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.8303981423377991
+      Pitch: 0.7103983163833618
       Target Frame: world
-      Yaw: 0.10539884865283966
+      Yaw: 6.218583106994629
     Saved: ~
 Window Geometry:
   Displays:
@@ -512,5 +511,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 1866
-  X: 383
-  Y: 163
+  X: 753
+  Y: 199

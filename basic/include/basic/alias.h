@@ -51,13 +51,13 @@ namespace ouster_ros
         PCL_ADD_POINT4D;
         float intensity;
         uint32_t t;
-        uint32_t range;
+        std::int32_t ring;
         EIGEN_MAKE_ALIGNED_OPERATOR_NEW
     };
 } // namespace ouster_ros
 
 POINT_CLOUD_REGISTER_POINT_STRUCT(ouster_ros::Point,
-                                  (float, x, x)(float, y, y)(float, z, z)(float, intensity, intensity)(std::uint32_t, t, t)(std::uint32_t, range, range))
+                                  (float, x, x)(float, y, y)(float, z, z)(float, intensity, intensity)(std::uint32_t, t, t)(std::int32_t, ring, ring))
 
 namespace hesai_ros
 {
@@ -66,7 +66,7 @@ namespace hesai_ros
         PCL_ADD_POINT4D
         float intensity;
         double timestamp;
-        uint16_t ring;
+        std::uint16_t ring;
         EIGEN_MAKE_ALIGNED_OPERATOR_NEW
     };
 }
