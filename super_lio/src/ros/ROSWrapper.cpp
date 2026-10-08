@@ -5,6 +5,8 @@
 
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
 
+#include <iomanip>
+
 using namespace BASIC;
 
 namespace LI2Sup
