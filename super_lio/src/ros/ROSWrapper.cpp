@@ -45,6 +45,12 @@ namespace LI2Sup
     nh.getParam("/lio/sensor/maxrange", temp_range_dis);
     g_maxrange2 = temp_range_dis * temp_range_dis;
     nh.getParam("/lio/sensor/filter_rate", g_filter_rate);
+    if (g_filter_rate <= 0)
+    {
+      ROS_ERROR_STREAM("Invalid /lio/sensor/filter_rate=" << g_filter_rate
+                       << "; forcing it to 1 to prevent an infinite point-cloud loop");
+      g_filter_rate = 1;
+    }
     nh.getParam("/lio/sensor/enable_downsample", g_enable_downsample);
     nh.getParam("/lio/sensor/voxel_fliter_size", g_voxel_fliter_size);
 
@@ -226,6 +232,10 @@ namespace LI2Sup
     }
 
     LOG(INFO) << GREEN << " ---> Using Lidar type: " << lidarTypeToString(g_lidar_type) << RESET;
+    ROS_INFO_STREAM("LiDAR input configured: topic=" << g_lidar_topic
+                    << ", type=" << lidarTypeToString(g_lidar_type)
+                    << " (" << g_lidar_type << "), filter_rate=" << g_filter_rate
+                    << "; IMU topic=" << g_imu_topic);
 
     nh_.setCallbackQueue(&self_queue_);
 
@@ -315,6 +325,62 @@ namespace LI2Sup
             pt.x, pt.y, pt.z, pt.intensity, offset_time);
       }
       lidar_data.end_time = time_begin + offset_time;
+      break;
+    }
+    case LID_TYPE::SEYOND:
+    {
+      pcl::PointCloud<seyond_ros::Point> pl_orig;
+      pcl::fromROSMsg(*msg, pl_orig);
+      if (pl_orig.empty())
+      {
+        ROS_ERROR_STREAM_THROTTLE(5.0,
+            "Seyond cloud conversion produced zero points: width=" << msg->width
+            << ", height=" << msg->height << ", point_step=" << msg->point_step
+            << ". Check PointCloud2 field names/types against seyond_ros::Point");
+        return;
+      }
+
+      lidar_data.pc->reserve(pl_orig.size() / g_filter_rate + 1);
+      // Seyond's per-point timestamp is sensor uptime, not Unix time.
+      // Use the ROS header for the absolute scan time and the point timestamp
+      // only to derive the offset within this scan.
+      const double time_begin = pl_orig.front().timestamp;
+      const double time_end = pl_orig.back().timestamp;
+      lidar_data.start_time = msg->header.stamp.toSec();
+      const double scan_duration = time_end - time_begin;
+      if (!std::isfinite(time_begin) || !std::isfinite(time_end) ||
+          scan_duration < 0.0 || scan_duration > 1.0)
+      {
+        ROS_ERROR_STREAM_THROTTLE(5.0,
+            "Invalid Seyond point timestamps: first=" << time_begin
+            << ", last=" << time_end << ", duration=" << scan_duration
+            << " s, header=" << lidar_data.start_time);
+        return;
+      }
+      ROS_INFO_STREAM_THROTTLE(5.0,
+          "Seyond cloud received: raw_points=" << pl_orig.size()
+          << ", header=" << std::fixed << std::setprecision(6) << lidar_data.start_time
+          << ", sensor_time=" << time_begin << ", duration=" << scan_duration << " s");
+
+      for (std::size_t i = 0; i < pl_orig.size(); i += g_filter_rate)
+      {
+        const auto &pt = pl_orig.points[i];
+        if (!validPoint(pt.x, pt.y, pt.z))
+          continue;
+
+        offset_time = pt.timestamp - time_begin;
+        lidar_data.pc->emplace_back(
+            pt.x, pt.y, pt.z, pt.intensity, offset_time);
+      }
+      if (lidar_data.pc->empty())
+      {
+        ROS_WARN_STREAM_THROTTLE(5.0,
+            "Seyond cloud has no usable points after filtering: raw_points="
+            << pl_orig.size() << ", blind=" << std::sqrt(g_blind2)
+            << " m, maxrange=" << std::sqrt(g_maxrange2) << " m");
+        return;
+      }
+      lidar_data.end_time = lidar_data.start_time + offset_time;
       break;
     }
     case LID_TYPE::VEL_NCLT:
@@ -456,6 +522,9 @@ namespace LI2Sup
       break;
     }
     default:
+      ROS_ERROR_STREAM_THROTTLE(5.0,
+          "Unsupported lidar_type=" << g_lidar_type
+          << "; PointCloud2 on " << g_lidar_topic << " is being dropped");
       return;
     }
 
@@ -543,10 +612,13 @@ namespace LI2Sup
   {
     if (lidar_buffer_.empty() || imu_buffer_.empty())
     {
+      ROS_WARN_STREAM_THROTTLE(5.0,
+          "Waiting for sensor data: lidar_buffer=" << lidar_buffer_.size()
+          << ", imu_buffer=" << imu_buffer_.size()
+          << ", last_lidar=" << std::fixed << std::setprecision(6) << last_timestamp_lidar_
+          << ", last_imu=" << last_timestamp_imu_
+          << ". Check topics " << g_lidar_topic << " and " << g_imu_topic);
       return false;
-    }
-    else
-    {
     }
 
     /*** push a lidar scan ***/
@@ -558,6 +630,10 @@ namespace LI2Sup
 
     if (last_timestamp_lidar_ > meas.lidar.end_time)
     {
+      ROS_ERROR_STREAM("LiDAR timestamp moved backwards: previous_end="
+                       << std::fixed << std::setprecision(6) << last_timestamp_lidar_
+                       << ", current_end=" << meas.lidar.end_time
+                       << ". Dropping current scan");
       lidar_buffer_.pop_front();
       lidar_pushed_ = false;
       return false;
@@ -565,6 +641,13 @@ namespace LI2Sup
 
     if (last_timestamp_imu_ < meas.lidar.end_time)
     {
+      ROS_WARN_STREAM_THROTTLE(5.0,
+          "Waiting for IMU to cover LiDAR scan: lidar=["
+          << std::fixed << std::setprecision(6) << meas.lidar.start_time
+          << ", " << meas.lidar.end_time << "], latest_imu=" << last_timestamp_imu_
+          << ", lag=" << (meas.lidar.end_time - last_timestamp_imu_) << " s"
+          << ", lidar_buffer=" << lidar_buffer_.size()
+          << ", imu_buffer=" << imu_buffer_.size());
       return false;
     }
 
@@ -578,6 +661,16 @@ namespace LI2Sup
         break;
       meas.imu.push_back(imu_buffer_.front());
       imu_buffer_.pop_front();
+    }
+
+    if (meas.imu.empty())
+    {
+      ROS_ERROR_STREAM_THROTTLE(5.0,
+          "No IMU samples matched LiDAR scan: lidar=["
+          << std::fixed << std::setprecision(6) << meas.lidar.start_time
+          << ", " << meas.lidar.end_time << "], earliest_imu="
+          << (imu_buffer_.empty() ? -1.0 : imu_buffer_.front().secs)
+          << ". Likely timestamp epoch/unit mismatch between LiDAR and IMU");
     }
 
     last_timestamp_lidar_ = meas.lidar.end_time;

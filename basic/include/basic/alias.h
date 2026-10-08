@@ -8,6 +8,7 @@
 #ifndef ALIAS_TYPES_H_H_
 #define ALIAS_TYPES_H_H_
 
+#include <cstdint>
 #include <vector>
 #include <Eigen/Core>
 #include <Eigen/Dense>
@@ -73,6 +74,27 @@ namespace hesai_ros
 
 POINT_CLOUD_REGISTER_POINT_STRUCT(hesai_ros::Point,
                                   (float, x, x)(float, y, y)(float, z, z)(float, intensity, intensity)(double, timestamp, timestamp)(std::uint16_t, ring, ring))
+
+// Seyond solid-state LiDAR PointCloud2 layout (point_step: 48 bytes).
+// scan_idx identifies the scan line and is equivalent to a ring field.
+namespace seyond_ros
+{
+    struct EIGEN_ALIGN16 Point
+    {
+        PCL_ADD_POINT4D
+        double timestamp;
+        float intensity;
+        std::uint8_t flags;
+        std::uint8_t elongation;
+        std::uint16_t scan_id;
+        std::uint16_t scan_idx;
+        std::uint8_t is_2nd_return;
+        EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+    };
+}
+
+POINT_CLOUD_REGISTER_POINT_STRUCT(seyond_ros::Point,
+                                  (float, x, x)(float, y, y)(float, z, z)(double, timestamp, timestamp)(float, intensity, intensity)(std::uint8_t, flags, flags)(std::uint8_t, elongation, elongation)(std::uint16_t, scan_id, scan_id)(std::uint16_t, scan_idx, scan_idx)(std::uint8_t, is_2nd_return, is_2nd_return))
 
 namespace LI2Sup
 {

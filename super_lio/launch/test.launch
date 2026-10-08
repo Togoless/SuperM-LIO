@@ -2,7 +2,7 @@
 
   <arg name="rviz" default="true" />
 
-  <rosparam file="$(find super_lio)/config/test_ouster.yaml" command="load"/>
+  <rosparam file="$(find super_lio)/config/test_seyond.yaml" command="load"/>
 
   <!-- Launch Nodes -->
   <node pkg="super_lio" type="super_lio_node" name="super_lio_node" output="screen"/>
